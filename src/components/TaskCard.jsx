@@ -1,8 +1,20 @@
 import Icon from "./Icon";
+import { formatDueDate, isOverdue } from "../utils/dates";
+
+const PRIORITY_STYLES = {
+  high: "bg-red-100 text-red-800",
+  medium: "bg-amber-100 text-amber-800",
+  low: "bg-emerald-100 text-emerald-800",
+};
 
 export default function TaskCard({ task, onToggle, onEdit, onDelete }) {
+  const overdue = isOverdue(task);
+
   return (
-    <div className="flex flex-col p-4 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow group">
+    <div
+      className={`flex flex-col p-4 rounded-xl bg-surface-container-lowest shadow-sm hover:shadow-md transition-shadow group
+      ${overdue ? "ring-1 ring-error/40" : ""}`}
+    >
       <div className="flex items-start gap-3">
         {/* Checkbox: marks the task completed / pending */}
         <button
@@ -50,13 +62,32 @@ export default function TaskCard({ task, onToggle, onEdit, onDelete }) {
         </div>
       </div>
 
-      <div className="mt-4 pl-8">
+      {/* Badges: status, priority, due date */}
+      <div className="mt-4 pl-8 flex flex-wrap items-center gap-2">
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium
           ${task.completed ? "bg-primary-fixed text-primary" : "bg-amber-100 text-amber-800"}`}
         >
           {task.completed ? "Completed" : "Pending"}
         </span>
+
+        <span
+          data-testid="priority-badge"
+          className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium capitalize ${PRIORITY_STYLES[task.priority] ?? PRIORITY_STYLES.medium}`}
+        >
+          {task.priority}
+        </span>
+
+        {task.due_date && (
+          <span
+            className={`inline-flex items-center gap-1 text-xs ml-auto
+            ${overdue ? "text-error font-semibold" : "text-on-surface-variant"}`}
+          >
+            <Icon name={overdue ? "warning" : "event"} className="text-[14px]" />
+            {overdue ? "Overdue · " : ""}
+            {formatDueDate(task.due_date)}
+          </span>
+        )}
       </div>
     </div>
   );

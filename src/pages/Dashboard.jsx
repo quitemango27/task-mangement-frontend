@@ -9,6 +9,9 @@ import TaskModal from "../components/TaskModal";
 import ConfirmDialog from "../components/ConfirmDialog";
 import { ErrorBanner } from "../components/AuthLayout";
 import Icon from "../components/Icon";
+import CoachCard from "../components/CoachCard";
+import CelebrationToast from "../components/CelebrationToast";
+import { AVATAR_FOR_MOOD, getMessages, getMood } from "../utils/coach";
 
 const TABS = [
   { key: "all", label: "All" },
@@ -29,6 +32,8 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [modal, setModal] = useState({ open: false, task: null }); // task=null means "new"
   const [taskToDelete, setTaskToDelete] = useState(null);
+  const [celebration, setCelebration] = useState(null); // {id, allDone} while the pop-up is showing
+  const [seed] = useState(() => Math.floor(Math.random() * 1000)); // picks which coach message to show
 
   // ---- Load tasks once, when the page opens ----
   useEffect(() => {
@@ -53,14 +58,29 @@ export default function Dashboard() {
       .sort((a, b) => b.id - a.id); // newest first
   }, [tasks, filter, search]);
 
+  // ---- The coach ----
+  const mood = getMood(tasks);
+  const coachLines = getMessages(mood, tasks);
+  const coachMessage = coachLines[seed % coachLines.length];
+
+  // Show the celebration pop-up (called right after a task becomes completed).
+  const celebrate = (nextTasks) => {
+    const allDone = nextTasks.length > 0 && nextTasks.every((t) => t.completed);
+    setCelebration({ id: Date.now(), allDone });
+  };
+
   // ---- Actions (each one calls the backend, then updates the screen) ----
   const handleSave = async (data) => {
     if (modal.task) {
       const res = await updateTask(modal.task.id, data);
-      setTasks((prev) => prev.map((t) => (t.id === modal.task.id ? res.data : t)));
+      const next = tasks.map((t) => (t.id === modal.task.id ? res.data : t));
+      setTasks(next);
+      if (!modal.task.completed && res.data.completed) celebrate(next);
     } else {
       const res = await createTask(data);
-      setTasks((prev) => [res.data, ...prev]);
+      const next = [res.data, ...tasks];
+      setTasks(next);
+      if (res.data.completed) celebrate(next);
     }
   };
 
@@ -71,8 +91,12 @@ export default function Dashboard() {
         title: task.title,
         description: task.description,
         completed: !task.completed,
+        priority: task.priority,
+        due_date: task.due_date,
       });
-      setTasks((prev) => prev.map((t) => (t.id === task.id ? res.data : t)));
+      const next = tasks.map((t) => (t.id === task.id ? res.data : t));
+      setTasks(next);
+      if (!task.completed && res.data.completed) celebrate(next);
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -168,6 +192,10 @@ export default function Dashboard() {
 
             {error && <ErrorBanner>{error}</ErrorBanner>}
 
+            {!loading && (
+              <CoachCard mood={mood} avatarMood={AVATAR_FOR_MOOD[mood]} message={coachMessage} />
+            )}
+
             {/* Summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {stats.map((s) => (
@@ -250,6 +278,13 @@ export default function Dashboard() {
           task={modal.task}
           onClose={closeModal}
           onSave={handleSave}
+        />
+      )}
+      {celebration && (
+        <CelebrationToast
+          key={celebration.id}
+          allDone={celebration.allDone}
+          onDone={() => setCelebration(null)}
         />
       )}
       {taskToDelete && (

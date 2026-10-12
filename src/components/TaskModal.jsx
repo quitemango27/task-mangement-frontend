@@ -10,6 +10,8 @@ export default function TaskModal({ task, onClose, onSave }) {
   const [title, setTitle] = useState(task?.title ?? "");
   const [description, setDescription] = useState(task?.description ?? "");
   const [completed, setCompleted] = useState(task?.completed ?? false);
+  const [priority, setPriority] = useState(task?.priority ?? "medium");
+  const [dueDate, setDueDate] = useState(task?.due_date ?? ""); // "" means no due date
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
@@ -25,7 +27,13 @@ export default function TaskModal({ task, onClose, onSave }) {
     setError("");
     setSaving(true);
     try {
-      await onSave({ title: title.trim(), description: description.trim(), completed });
+            await onSave({
+        title: title.trim(),
+        description: description.trim(),
+        completed,
+        priority,
+        due_date: dueDate || null, // backend expects null, not an empty string
+      });
       onClose();
     } catch (err) {
       setError(getErrorMessage(err));
@@ -96,6 +104,31 @@ export default function TaskModal({ task, onClose, onSave }) {
               onChange={(e) => setDescription(e.target.value)}
               required
             />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="task-priority" className={labelClass}>Priority</label>
+              <select
+                id="task-priority"
+                className={inputClass}
+                value={priority}
+                onChange={(e) => setPriority(e.target.value)}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+              </select>
+            </div>
+            <div>
+              <label htmlFor="task-due" className={labelClass}>Due date (optional)</label>
+              <input
+                id="task-due"
+                type="date"
+                className={inputClass}
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+              />
+            </div>
           </div>
 
           <label className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-container-low cursor-pointer">
