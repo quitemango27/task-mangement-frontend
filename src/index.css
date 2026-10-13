@@ -16,6 +16,7 @@
   --color-surface-container-highest: #d3e4fe;
   --color-on-surface: #0b1c30;
   --color-on-surface-variant: #464554;
+  --color-inverse-surface: #213145;
   --color-outline: #777586;
   --color-outline-variant: #c7c4d7;
   --color-error: #ba1a1a;
@@ -42,6 +43,14 @@ h1, h2, h3 {
   font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24;
   user-select: none;
   line-height: 1;
+  /* Keep each icon in a 1em box. If the icon font is slow to load, the icon's
+     name (like "local_fire_department") is clipped instead of stretching the page. */
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  overflow: hidden;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ---- Coach animations ---- */

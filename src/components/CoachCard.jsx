@@ -6,6 +6,7 @@ const STYLES = {
   overdue: "bg-amber-50 ring-1 ring-amber-200",
   allDone: "bg-primary-fixed",
   great: "bg-emerald-50 ring-1 ring-emerald-200",
+  streak: "bg-orange-50 ring-1 ring-orange-200",
   steady: "bg-surface-container-lowest shadow-sm",
   welcome: "bg-surface-container-lowest shadow-sm",
 };

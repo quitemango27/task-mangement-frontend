@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { createTask, deleteTask, getTasks, updateTask } from "../api/tasks";
+import { createTask, deleteTask, getStats, getTasks, updateTask } from "../api/tasks";
 import { getErrorMessage } from "../utils/errors";
 import Sidebar from "../components/Sidebar";
 import TaskCard from "../components/TaskCard";
@@ -11,6 +11,7 @@ import { ErrorBanner } from "../components/AuthLayout";
 import Icon from "../components/Icon";
 import CoachCard from "../components/CoachCard";
 import CelebrationToast from "../components/CelebrationToast";
+import StatsPanel from "../components/StatsPanel";
 import { AVATAR_FOR_MOOD, getMessages, getMood } from "../utils/coach";
 
 const TABS = [
@@ -32,15 +33,29 @@ export default function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [modal, setModal] = useState({ open: false, task: null }); // task=null means "new"
   const [taskToDelete, setTaskToDelete] = useState(null);
-  const [celebration, setCelebration] = useState(null); // {id, allDone} while the pop-up is showing
+  const [celebration, setCelebration] = useState(null); // {id, allDone, streak} while the pop-up is showing
+  const [progress, setProgress] = useState(null); // streak + weekly numbers from the backend
   const [seed] = useState(() => Math.floor(Math.random() * 1000)); // picks which coach message to show
 
-  // ---- Load tasks once, when the page opens ----
+  // Ask the backend for fresh streak numbers. If it fails, the dashboard still works
+  // (the progress panel simply stays hidden), so errors are ignored on purpose.
+  const refreshProgress = async () => {
+    try {
+      const res = await getStats();
+      setProgress(res.data);
+      return res.data;
+    } catch {
+      return null;
+    }
+  };
+
+  // ---- Load tasks and progress once, when the page opens ----
   useEffect(() => {
     getTasks()
       .then((res) => setTasks(res.data))
       .catch((err) => setError(getErrorMessage(err)))
       .finally(() => setLoading(false));
+    refreshProgress();
   }, []);
 
   // ---- Numbers for the summary cards ----
@@ -59,14 +74,16 @@ export default function Dashboard() {
   }, [tasks, filter, search]);
 
   // ---- The coach ----
-  const mood = getMood(tasks);
-  const coachLines = getMessages(mood, tasks);
+  const mood = getMood(tasks, progress);
+  const coachLines = getMessages(mood, tasks, progress);
   const coachMessage = coachLines[seed % coachLines.length];
 
   // Show the celebration pop-up (called right after a task becomes completed).
-  const celebrate = (nextTasks) => {
+  // It first fetches the new streak, so the pop-up can mention it.
+  const celebrate = async (nextTasks) => {
     const allDone = nextTasks.length > 0 && nextTasks.every((t) => t.completed);
-    setCelebration({ id: Date.now(), allDone });
+    const fresh = await refreshProgress();
+    setCelebration({ id: Date.now(), allDone, streak: fresh?.current_streak ?? 0 });
   };
 
   // ---- Actions (each one calls the backend, then updates the screen) ----
@@ -76,11 +93,13 @@ export default function Dashboard() {
       const next = tasks.map((t) => (t.id === modal.task.id ? res.data : t));
       setTasks(next);
       if (!modal.task.completed && res.data.completed) celebrate(next);
+      else refreshProgress();
     } else {
       const res = await createTask(data);
       const next = [res.data, ...tasks];
       setTasks(next);
       if (res.data.completed) celebrate(next);
+      else refreshProgress();
     }
   };
 
@@ -97,6 +116,7 @@ export default function Dashboard() {
       const next = tasks.map((t) => (t.id === task.id ? res.data : t));
       setTasks(next);
       if (!task.completed && res.data.completed) celebrate(next);
+      else refreshProgress();
     } catch (err) {
       setError(getErrorMessage(err));
     }
@@ -106,6 +126,7 @@ export default function Dashboard() {
     await deleteTask(taskToDelete.id);
     setTasks((prev) => prev.filter((t) => t.id !== taskToDelete.id));
     setTaskToDelete(null);
+    refreshProgress(); // deleting a completed task changes the numbers
   };
 
   const handleLogout = () => {
@@ -196,6 +217,8 @@ export default function Dashboard() {
               <CoachCard mood={mood} avatarMood={AVATAR_FOR_MOOD[mood]} message={coachMessage} />
             )}
 
+            {!loading && progress && total > 0 && <StatsPanel stats={progress} />}
+
             {/* Summary cards */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {stats.map((s) => (
@@ -284,6 +307,7 @@ export default function Dashboard() {
         <CelebrationToast
           key={celebration.id}
           allDone={celebration.allDone}
+          streak={celebration.streak}
           onDone={() => setCelebration(null)}
         />
       )}

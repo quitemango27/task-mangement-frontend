@@ -6,12 +6,17 @@ import { CELEBRATE_ALL, CELEBRATE_ONE } from "../utils/coach";
 const COLORS = ["#4f46e5", "#fbbf24", "#10b981", "#f43f5e", "#38bdf8", "#a855f7"];
 
 // Pop-up that appears right after you complete a task.
-export default function CelebrationToast({ allDone, onDone }) {
+export default function CelebrationToast({ allDone, streak = 0, onDone }) {
   // Choose the message and confetti once, so they don't change on every re-render.
   const message = useMemo(() => {
+    if (streak >= 2) {
+      return allDone
+        ? `Everything done and a ${streak}-day streak!`
+        : `Hurrah! That's a ${streak}-day streak!`;
+    }
     const list = allDone ? CELEBRATE_ALL : CELEBRATE_ONE;
     return list[Math.floor(Math.random() * list.length)];
-  }, [allDone]);
+  }, [allDone, streak]);
 
   const confetti = useMemo(
     () =>

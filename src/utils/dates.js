@@ -19,3 +19,15 @@ export function formatDueDate(dateString) {
   const [y, m, d] = dateString.split("-").map(Number);
   return new Date(y, m - 1, d).toLocaleDateString(undefined, { month: "short", day: "numeric" });
 }
+
+// "2026-10-13" -> "Tue"
+export function weekdayShort(dateString) {
+  const [y, m, d] = dateString.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short" });
+}
+
+// "2026-10-13" -> "Tue, Oct 13"
+export function formatLongDate(dateString) {
+  const [y, m, d] = dateString.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+}
