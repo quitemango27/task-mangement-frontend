@@ -12,6 +12,7 @@ import Icon from "../components/Icon";
 import CoachCard from "../components/CoachCard";
 import CelebrationToast from "../components/CelebrationToast";
 import StatsPanel from "../components/StatsPanel";
+import DailyPlanCard from "../components/DailyPlanCard";
 import { AVATAR_FOR_MOOD, getMessages, getMood } from "../utils/coach";
 
 const TABS = [
@@ -216,6 +217,8 @@ export default function Dashboard() {
             {!loading && (
               <CoachCard mood={mood} avatarMood={AVATAR_FOR_MOOD[mood]} message={coachMessage} />
             )}
+
+            {!loading && total > 0 && <DailyPlanCard pendingCount={pendingCount} />}
 
             {!loading && progress && total > 0 && <StatsPanel stats={progress} />}
 
