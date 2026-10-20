@@ -104,6 +104,28 @@ export default function Dashboard() {
     }
   };
 
+  // Mia's breakdown: create several tasks at once. The list shows newest first, so we create
+  // them last-to-first, which makes step 1 appear at the top.
+  const handleSaveMany = async (items) => {
+    const created = [];
+    let failure = null;
+    for (const data of [...items].reverse()) {
+      try {
+        const res = await createTask(data);
+        created.push(res.data);
+      } catch (err) {
+        failure = err;
+        break;
+      }
+    }
+    if (created.length) {
+      setTasks((prev) => [...created.reverse(), ...prev]);
+      refreshProgress();
+    }
+    if (failure && !created.length) throw failure; // nothing saved: the pop-up shows the error
+    if (failure) setError(`Added ${created.length} of ${items.length} tasks, then something went wrong. ${getErrorMessage(failure)}`);
+  };
+
   const handleToggle = async (task) => {
     setError("");
     try {
@@ -181,6 +203,7 @@ export default function Dashboard() {
 
             <button
               onClick={openNew}
+              aria-label="New task"
               className="ml-auto h-9 px-4 rounded-lg bg-primary-container text-on-primary text-sm font-medium flex items-center gap-1 shadow-sm hover:bg-primary transition-colors"
             >
               <Icon name="add" className="text-[18px]" />
@@ -304,6 +327,7 @@ export default function Dashboard() {
           task={modal.task}
           onClose={closeModal}
           onSave={handleSave}
+          onSaveMany={handleSaveMany}
         />
       )}
       {celebration && (
